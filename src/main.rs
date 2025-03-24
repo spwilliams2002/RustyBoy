@@ -1,9 +1,8 @@
-mod motherboard;
-mod cpu;
+mod bootrom;
+mod cartridge;
 
 extern crate std;
 
 fn main() {
-    println!("Hello, world!");
 
 }
