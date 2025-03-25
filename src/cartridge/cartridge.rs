@@ -1,6 +1,4 @@
-use std::collections::HashMap;
 
-mod cartridge {
     use std::collections::HashMap;
     use std::ptr::null;
 
@@ -128,6 +126,5 @@ mod cartridge {
         pub rtc_clock_counter: u8,
     }
     impl RAM {}
-}
 
 
