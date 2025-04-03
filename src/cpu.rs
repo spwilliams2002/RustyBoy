@@ -1,4 +1,9 @@
+use crate::motherboard::Motherboard;
+use crate::motherboard::motherboard::Motherboard;
+
 pub struct CPU {
+    pub motherboard: Motherboard,
+
     // Registers
     pub a: u8, // Accumulator
     pub f: u8, // Flags
@@ -6,20 +11,31 @@ pub struct CPU {
     pub c: u8, // Register C
     pub d: u8, // Register D
     pub e: u8, // Register E
-    pub h: u8, // Register H
-    pub l: u8, // Register L
 
     // Stack Pointer and Program Counter
     pub sp: u16, // Stack Pointer
     pub pc: u16, // Program Counter
+    pub hl: u16,
 
-    // Memory interface (simplified, assumes memory is handled separately)
-    pub memory: Vec<u8>,
+    pub is_stuck: bool,
+    pub interrupt_master_enable: bool,
+    pub interrupt_queued: bool,
+    pub halted: bool,
+    pub stopped: bool,
+    pub bail: bool,
+
+    pub interrupts_flag: u8,
+    pub interrupts_enabled: u8,
+    pub interrupts_flag_register: u8,
+    pub interrupts_enabled_register: u8,
+
+    pub cycles: i64
+
 }
 
 impl CPU {
     /// Creates a new CPU instance and initializes its state.
-    pub fn new() -> Self {
+    pub fn new(mb: Motherboard) -> Self {
         Self {
             a: 0,
             f: 0,
@@ -27,11 +43,23 @@ impl CPU {
             c: 0,
             d: 0,
             e: 0,
-            h: 0,
-            l: 0,
+            hl: 0,
             sp: 0xFFFE, // Default stack pointer initialization
             pc: 0x0100, // Default starting address for the Game Boy
-            memory: vec![0; 0x10000], // 64KB of memory
+            interrupts_flag_register: 0,
+            interrupts_enabled_register: 0,
+            interrupt_master_enable: false,
+            interrupt_queued: false,
+
+            motherboard: mb,
+
+            bail: false,
+            halted: false,
+            stopped: false,
+            is_stuck: false,
+            cycles: 0,
+            interrupts_flag: 0,
+            interrupts_enabled: 0
         }
     }
 
