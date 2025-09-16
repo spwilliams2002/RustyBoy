@@ -1,4 +1,5 @@
 use crate::motherboard;
+use crate::motherboard::Bus;
 
 pub struct CPU {
 
@@ -14,8 +15,6 @@ pub struct CPU {
     pub sp: u16, // Stack Pointer
     pub pc: u16, // Program Counter
     pub hl: u16,
-
-    pub memory: Vec<u8>,
 
     pub is_stuck: bool,
     pub interrupt_master_enable: bool,
@@ -50,8 +49,6 @@ impl CPU {
             interrupt_master_enable: false,
             interrupt_queued: false,
 
-            memory: vec![0; 0x10000],
-
             bail: false,
             halted: false,
             stopped: false,
@@ -74,27 +71,58 @@ impl CPU {
         self.hl = 0;
         self.sp = 0xFFFE;
         self.pc = 0x0100;
-        self.memory.fill(0);
     }
 
     /// Executes a single instruction at the current program counter.
-    pub fn step(&mut self) {
-        let opcode = self.fetch_byte();
-        self.execute_instruction(opcode);
+    pub fn step<B: Bus>(&mut self, bus: &mut B) -> u32 {
+        let opcode = self.fetch8(bus);
+        self.execute_instruction(opcode, bus)
     }
 
     /// Fetches the next byte from memory and increments the program counter.
-    fn fetch_byte(&mut self) -> u8 {
-        let byte = self.memory[self.pc as usize];
+    fn fetch8<B: Bus>(&mut self, bus: &mut B) -> u8 {
+        let byte = bus.read8(self.pc);
         self.pc = self.pc.wrapping_add(1);
         byte
     }
 
+    fn fetch16<B: Bus>(&mut self, bus: &mut B) -> u16 {
+        let lo = self.fetch8(bus) as u16;
+        let hi = self.fetch8(bus) as u16;
+        (hi << 8) | lo
+    }
 
-    fn execute_instruction(&mut self, opcode: u8) {
+
+    fn execute_instruction<B: Bus>(&mut self, opcode: u8, bus: &mut B) -> u32 {
         match opcode {
-            0x00 => self.nop(),
-            0x01 => self.ld()
+            // NOP
+            0x00 => {self.nop(); 4},
+            // LD BC, d16
+            0x01 => {
+                let data = self.fetch16(bus);
+                self.set_bc(data);
+                12
+            }
+            // LD (BC), A
+            0x02 => {self.set_bc(self.a as u16); 8}
+            // INC BC
+            0x03 => {self.set_bc(self.bc().wrapping_add(1)); 8}
+            // INC B
+            0x04 => {self.b = self.b.wrapping_add(1); 4}
+            // DEC B
+            0x05 => {self.b = self.b.wrapping_sub(1); 4}
+            // LD B, d8
+            0x06 => {
+                let data = self.fetch8(bus);
+                self.b = data;
+                8
+            }
+            // TODO: RLCA
+            0x07 => {4}
+            // TODO: LD (a16), SP
+            0x08 => {
+                20
+            }
             _ => panic!("Unknown opcode: {:#04x}", opcode),
         }
     }
@@ -104,7 +132,9 @@ impl CPU {
         // Does nothing
     }
 
-    fn ld(&self, reg: &mut u8, val: u8) {
-
+    fn bc(&self) -> u16 {((self.b as u16) << 8) | self.c as u16}
+    fn set_bc(&mut self, val: u16) {
+        self.b = (val >> 8) as u8;
+        self.c = val as u8;
     }
 }
