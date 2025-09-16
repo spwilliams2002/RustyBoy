@@ -1,8 +1,6 @@
-use crate::motherboard::Motherboard;
-use crate::motherboard::motherboard::Motherboard;
+use crate::motherboard;
 
 pub struct CPU {
-    pub motherboard: Motherboard,
 
     // Registers
     pub a: u8, // Accumulator
@@ -17,6 +15,8 @@ pub struct CPU {
     pub pc: u16, // Program Counter
     pub hl: u16,
 
+    pub memory: Vec<u8>,
+
     pub is_stuck: bool,
     pub interrupt_master_enable: bool,
     pub interrupt_queued: bool,
@@ -30,12 +30,11 @@ pub struct CPU {
     pub interrupts_enabled_register: u8,
 
     pub cycles: i64
-
 }
 
 impl CPU {
     /// Creates a new CPU instance and initializes its state.
-    pub fn new(mb: Motherboard) -> Self {
+    pub fn new() -> Self {
         Self {
             a: 0,
             f: 0,
@@ -51,7 +50,7 @@ impl CPU {
             interrupt_master_enable: false,
             interrupt_queued: false,
 
-            motherboard: mb,
+            memory: vec![0; 0x10000],
 
             bail: false,
             halted: false,
@@ -59,9 +58,10 @@ impl CPU {
             is_stuck: false,
             cycles: 0,
             interrupts_flag: 0,
-            interrupts_enabled: 0
+            interrupts_enabled: 0,
         }
     }
+
 
     /// Resets the CPU to its initial state.
     pub fn reset(&mut self) {
@@ -71,8 +71,7 @@ impl CPU {
         self.c = 0;
         self.d = 0;
         self.e = 0;
-        self.h = 0;
-        self.l = 0;
+        self.hl = 0;
         self.sp = 0xFFFE;
         self.pc = 0x0100;
         self.memory.fill(0);
@@ -91,17 +90,21 @@ impl CPU {
         byte
     }
 
-    /// Decodes and executes the instruction corresponding to the given opcode.
+
     fn execute_instruction(&mut self, opcode: u8) {
         match opcode {
             0x00 => self.nop(),
-            // Add more opcode implementations here...
+            0x01 => self.ld()
             _ => panic!("Unknown opcode: {:#04x}", opcode),
         }
     }
 
-    /// A placeholder for the NOP (No Operation) instruction.
+
     fn nop(&self) {
         // Does nothing
+    }
+
+    fn ld(&self, reg: &mut u8, val: u8) {
+
     }
 }
