@@ -19,6 +19,22 @@ pub struct RTC {
 
 impl RTC {
     pub fn new(filename: String) -> RTC {
+        if filename == "" {
+            return RTC {
+                filename,
+                latch_enabled: false,
+                time_zero: 0.0,
+                time_lock: false,
+                sec_latch: 0,
+                min_latch: 0,
+                hour_latch: 0,
+                day_latch_low: 0,
+                day_latch_high: 0,
+                day_carry: 0,
+                halt: 0,
+            }
+        }
+
         let new_filename = filename + ".rtc";
         let mut time_zero = time::SystemTime::now();
         let time_lock = false;
@@ -36,7 +52,7 @@ impl RTC {
 
     fn load_state(&self, file: File, state_version: c_int, time_zero: &mut time::SystemTime) {
         if state_version <= 12 {
-            time_zero = 
+            self.time_zero = 0;
         }
     }
 }

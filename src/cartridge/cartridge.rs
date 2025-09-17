@@ -6,7 +6,7 @@
         pub rom: ROM,
         pub ram: RAM,
         pub mbc: MBC,
-        pub cartridge_table: HashMap<u8, std::any>,
+        pub cartridge_table: HashMap<u8, (bool, bool, bool)>,
         pub external_ram_table: HashMap<u8, u8>,
     }
     impl Cartridge {
@@ -45,7 +45,7 @@
 
         fn load_cartridge(&self, filename: &str) {
             let rom_banks = load_rom(filename);
-            if !validate_cartridge(rom_banks) {
+            if !validate_cartridge(&rom_banks) {
                 panic!("Invalid cartridge");
             }
 
@@ -70,7 +70,7 @@
         rom_banks[0x14D] == x
     }
 
-    fn load_rom(filename: &str) -> &Vec<u8> {
+    fn load_rom(filename: &str) -> Vec<u8> {
         let rom_data = std::fs::read(filename).unwrap().to_vec();
         if Vec::len(&rom_data) == 0x0 {
             panic!("File is empty");
@@ -79,7 +79,7 @@
         if Vec::len(&rom_data) % bank_size != 0 {
             panic!("File is not a multiple of 16kb");
         }
-        &rom_data
+        rom_data
     }
 
     pub struct MBC {

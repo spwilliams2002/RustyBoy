@@ -170,3 +170,32 @@ impl CPU {
         self.f = if carry { FLAG_C } else { 0 };
     }
 }
+
+
+
+// Tests
+#[test]
+fn inc_flags() {
+    let mut cpu = CPU::new();
+    cpu.f = FLAG_C;           // C should be preserved
+    cpu.b = 0x0F; cpu.b = cpu.inc8(cpu.b);
+    assert_eq!(cpu.b, 0x10);
+    assert_eq!(cpu.f, FLAG_C | FLAG_H); // H=1, Z=0, N=0
+
+    cpu.f = 0; cpu.b = 0xFF; cpu.b = cpu.inc8(cpu.b);
+    assert_eq!(cpu.b, 0x00);
+    assert_eq!(cpu.f, FLAG_Z | FLAG_H); // Z=1, H=1, C unchanged(0), N=0
+}
+
+#[test]
+fn dec_flags() {
+    let mut cpu = CPU::new();
+    cpu.f = FLAG_C;           // C should be preserved
+    cpu.b = 0x10; cpu.b = cpu.dec8(cpu.b);
+    assert_eq!(cpu.b, 0x0F);
+    assert_eq!(cpu.f, FLAG_C | FLAG_N | FLAG_H); // N=1, H=1
+
+    cpu.f = 0; cpu.b = 0x01; cpu.b = cpu.dec8(cpu.b);
+    assert_eq!(cpu.b, 0x00);
+    assert_eq!(cpu.f, FLAG_N | FLAG_Z); // H=0, C unchanged(0)
+}
