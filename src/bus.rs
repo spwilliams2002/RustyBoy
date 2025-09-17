@@ -1,3 +1,4 @@
+/// Trait that allows the motherboard to pass values between its components
 pub trait Bus {
     fn read8(&mut self, address: u16) -> u8;
     fn write8(&mut self, address: u16, value: u8);
@@ -14,6 +15,7 @@ pub trait Bus {
     }
 }
 
+/// Mutable bus pointer that contains only necessary variables, avoids circular inheritance
 pub struct BusMut<'a> {
     pub memory: &'a mut [u8],
 }

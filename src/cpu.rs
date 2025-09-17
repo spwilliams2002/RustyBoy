@@ -31,8 +31,14 @@ pub struct CPU {
     pub cycles: i64
 }
 
+// Flag bits
+const FLAG_Z: u8 = 0b1000_000;
+const FLAG_N: u8 = 0b0100_000;
+const FLAG_H: u8 = 0b0010_000;
+const FLAG_C: u8 = 0b0001_000;
+const FLAG_MASK: u8 = 0xF0;
+
 impl CPU {
-    /// Creates a new CPU instance and initializes its state.
     pub fn new() -> Self {
         Self {
             a: 0,
@@ -59,8 +65,6 @@ impl CPU {
         }
     }
 
-
-    /// Resets the CPU to its initial state.
     pub fn reset(&mut self) {
         self.a = 0;
         self.f = 0;
@@ -73,13 +77,11 @@ impl CPU {
         self.pc = 0x0100;
     }
 
-    /// Executes a single instruction at the current program counter.
     pub fn step<B: Bus>(&mut self, bus: &mut B) -> u32 {
         let opcode = self.fetch8(bus);
         self.execute_instruction(opcode, bus)
     }
 
-    /// Fetches the next byte from memory and increments the program counter.
     fn fetch8<B: Bus>(&mut self, bus: &mut B) -> u8 {
         let byte = bus.read8(self.pc);
         self.pc = self.pc.wrapping_add(1);
@@ -108,17 +110,17 @@ impl CPU {
             // INC BC
             0x03 => {self.set_bc(self.bc().wrapping_add(1)); 8}
             // INC B
-            0x04 => {self.b = self.b.wrapping_add(1); 4}
+            0x04 => {self.b = self.inc8(self.b); 4}
             // DEC B
-            0x05 => {self.b = self.b.wrapping_sub(1); 4}
+            0x05 => {self.b = self.dec8(self.b); 4}
             // LD B, d8
             0x06 => {
                 let data = self.fetch8(bus);
                 self.b = data;
                 8
             }
-            // TODO: RLCA
-            0x07 => {4}
+            // RLCA
+            0x07 => {self.rlca(); 4}
             // TODO: LD (a16), SP
             0x08 => {
                 20
@@ -132,9 +134,39 @@ impl CPU {
         // Does nothing
     }
 
+    fn inc8(&mut self, r: u8) -> u8 {
+        let old_val = r;
+        let result = old_val.wrapping_add(1);
+
+        let h = (old_val & 0x0F) == 0x0F;
+        self.f = (self.f & FLAG_C)
+            | if result == 0 { FLAG_Z } else { 0 }
+            | if h { FLAG_H } else { 0 };
+
+        result
+    }
+    fn dec8(&mut self, r: u8) -> u8 {
+        let old_val = r;
+        let result = old_val.wrapping_sub(1);
+
+        let h = (old_val & 0x0F) == 0x00;
+        self.f = (self.f & FLAG_C)
+            | FLAG_N
+            | if result == 0 { FLAG_Z } else { 0 }
+            | if h { FLAG_H } else { 0 };
+
+        result
+    }
+
     fn bc(&self) -> u16 {((self.b as u16) << 8) | self.c as u16}
     fn set_bc(&mut self, val: u16) {
         self.b = (val >> 8) as u8;
         self.c = val as u8;
+    }
+
+    fn rlca(&mut self) {
+        let carry = (self.a & 0x80) != 0;
+        self.a = (self.a << 1) | if carry { 1 } else { 0 };
+        self.f = if carry { FLAG_C } else { 0 };
     }
 }
