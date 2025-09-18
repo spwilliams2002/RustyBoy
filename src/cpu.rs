@@ -10,11 +10,12 @@ pub struct CPU {
     pub c: u8, // Register C
     pub d: u8, // Register D
     pub e: u8, // Register E
+    pub h: u8, // Register H
+    pub l: u8, // Register L
 
     // Stack Pointer and Program Counter
     pub sp: u16, // Stack Pointer
     pub pc: u16, // Program Counter
-    pub hl: u16,
 
     pub is_stuck: bool,
     pub interrupt_master_enable: bool,
@@ -47,7 +48,8 @@ impl CPU {
             c: 0,
             d: 0,
             e: 0,
-            hl: 0,
+            h: 0,
+            l: 0,
             sp: 0xFFFE, // Default stack pointer initialization
             pc: 0x0100, // Default starting address for the Game Boy
             interrupts_flag_register: 0,
@@ -72,7 +74,8 @@ impl CPU {
         self.c = 0;
         self.d = 0;
         self.e = 0;
-        self.hl = 0;
+        self.h = 0;
+        self.l = 0;
         self.sp = 0xFFFE;
         self.pc = 0x0100;
     }
@@ -101,11 +104,11 @@ impl CPU {
             0x00 => {self.nop(); 4},
             // LD BC, d16
             0x01 => {
-                let data = self.fetch16(bus);
-                self.set_bc(data);
+                let d16 = self.fetch16(bus);
+                self.set_bc(d16);
                 12
             }
-            // LD (BC), A
+            // LD BC, A
             0x02 => {self.set_bc(self.a as u16); 8}
             // INC BC
             0x03 => {self.set_bc(self.bc().wrapping_add(1)); 8}
@@ -115,16 +118,63 @@ impl CPU {
             0x05 => {self.b = self.dec8(self.b); 4}
             // LD B, d8
             0x06 => {
-                let data = self.fetch8(bus);
-                self.b = data;
+                let d8 = self.fetch8(bus);
+                self.b = d8;
                 8
             }
             // RLCA
             0x07 => {self.rlca(); 4}
-            // TODO: LD (a16), SP
+            // LD a16, SP
             0x08 => {
+                let a16 = self.fetch16(bus);
+                bus.write16(a16, self.sp);
                 20
             }
+            // ADD HL, BC
+            0x09 => {
+                let r = self.add16(self.hl(), self.bc());
+                self.set_hl(r);
+                20
+            }
+            // LD A, BC
+            0x0A => {self.a = self.bc() as u8; 8}
+            // DEC BC
+            0x0B => {self.set_bc(self.bc().wrapping_sub(1)); 8}
+            // INC C
+            0x0C => {self.c = self.inc8(self.c); 4}
+            // DEC C
+            0x0D => {self.c = self.dec8(self.c); 4}
+            // LD C, d8
+            0x0E => {
+                let d8 = self.fetch8(bus);
+                self.c = d8;
+                8
+            }
+            // RRCA
+            0x0F => {self.rrca(); 4}
+            // TODO: STOP
+            0x10 => {4}
+            // LD DE, d16
+            0x11 => {
+                let d16 = self.fetch16(bus);
+                self.set_de(d16);
+                12
+            }
+            // LD DE, A
+            0x12 => {self.set_de(self.a as u16); 8}
+            // INC DE
+            0x13 => {self.set_de(self.de().wrapping_sub(1)); 8}
+            // INC D
+            0x14 => {self.d = self.inc8(self.d); 4}
+            // DEC D
+            0x15 => {self.d = self.dec8(self.d); 4}
+            // LD D, d8
+            0x16 => {
+                let d8 = self.fetch8(bus);
+                self.d = d8;
+                8
+            }
+            // 
             _ => panic!("Unknown opcode: {:#04x}", opcode),
         }
     }
@@ -158,19 +208,52 @@ impl CPU {
         result
     }
 
+    fn add16(&mut self, x: u16, y: u16) -> u16 {
+        let mut result = x + y;
+        let mut flag = 0b0000_000;
+        flag += if ((self.hl() & 0xFFF) + (self.bc() & 0xFFF)) > 0xFFF { FLAG_H } else { 0 };
+        flag += if result > 0xFFFF { FLAG_C } else { 0 };
+        self.f &= 0b1000_000;
+        self.f |= flag;
+        result |= 0xFFFF;
+        result
+    }
+
     fn bc(&self) -> u16 {((self.b as u16) << 8) | self.c as u16}
     fn set_bc(&mut self, val: u16) {
         self.b = (val >> 8) as u8;
         self.c = val as u8;
     }
+    fn de(&self) -> u16 {((self.d as u16) << 8) | self.e as u16}
+    fn set_de(&mut self, val: u16) {
+        self.d = (val >> 8) as u8;
+        self.e = val as u8;
+    }
+    fn hl(&self) -> u16 {((self.h as u16) << 8) | self.l as u16}
+    fn set_hl(&mut self, val: u16) {
+        self.h = (val >> 8) as u8;
+        self.l = val as u8;
+    }
 
     fn rlca(&mut self) {
-        let carry = (self.a & 0x80) != 0;
-        self.a = (self.a << 1) | if carry { 1 } else { 0 };
-        self.f = if carry { FLAG_C } else { 0 };
+        let mut new_a = (self.a << 1) + (self.a >> 7);
+        let mut flag = 0b0000_000;
+        flag += if new_a > 0xFF { FLAG_C } else { 0 };
+        self.f &= 0b1000_000;
+        self.f |= flag;
+        new_a &= 0xFF;
+        self.a = new_a;
+    }
+    fn rrca(&mut self) {
+        let mut new_a = (self.a >> 1) + ((self.a & 1) << 7) + ((self.a & 1) << 8);
+        let mut flag = 0b0000_000;
+        flag += if new_a > 0xFF { FLAG_C } else { 0 };
+        self.f &= 0b1000_000;
+        self.f |= flag;
+        new_a &= 0xFF;
+        self.a = new_a;
     }
 }
-
 
 
 // Tests
