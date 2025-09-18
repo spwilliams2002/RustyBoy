@@ -1,3 +1,4 @@
 pub mod cartridge;
-mod base_mbc;
+pub mod base_mbc;
 mod rtc;
+mod mbc_extended;

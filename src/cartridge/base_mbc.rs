@@ -22,7 +22,7 @@ pub struct BaseMBC {
 }
 
 impl BaseMBC {
-    pub fn new(&mut self, filename: String, rom_banks: Vec<u8>,
+    pub fn new(filename: String, rom_banks: Vec<u8>,
                 external_ram_count: c_int, cart_type: u8, sram: u8,
                 battery_enabled: bool, rtc_enabled: bool) -> Self
     {
@@ -61,7 +61,7 @@ impl BaseMBC {
     }
 
     fn init_ram_banks(n: c_int, ram_bank_initialized: &mut bool) -> Vec<u8> {
-        ram_bank_initialized = true;
+        *ram_bank_initialized = true;
         let ram_banks = vec![0; n as usize];
         ram_banks
     }

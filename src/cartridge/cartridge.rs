@@ -82,25 +82,24 @@
         rom_data
     }
 
-    pub struct MBC {
-        pub type_id: u8,
-        pub rom: ROM,
-        pub ram: RAM,
-        pub rom_bank: u8,
-        pub ram_bank: u8,
-        pub mode: u8,
-        pub rtc_enabled: bool,
-        pub rtc_register: u8,
-        pub rtc_data: u8,
-        pub rtc_latch: u8,
-        pub rtc_clock_divider: u8,
-    }
-    impl MBC {}
+    // pub struct MBC {
+    //     pub type_id: u8,
+    //     pub rom: ROM,
+    //     pub ram: RAM,
+    //     pub rom_bank: u8,
+    //     pub ram_bank: u8,
+    //     pub mode: u8,
+    //     pub rtc_enabled: bool,
+    //     pub rtc_register: u8,
+    //     pub rtc_data: u8,
+    //     pub rtc_latch: u8,
+    //     pub rtc_clock_divider: u8,
+    // }
+    // impl MBC {}
 
 
     pub struct ROM {
         pub data: Vec<u8>,
-        pub mbc: MBC,
         pub ram: Vec<u8>,
         pub rom_bank: u8,
         pub ram_bank: u8,
