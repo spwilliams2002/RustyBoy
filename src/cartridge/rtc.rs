@@ -17,6 +17,7 @@ pub struct RTC {
     pub halt: u64
 }
 
+
 impl RTC {
     pub fn new(filename: String) -> RTC {
         if filename == "" {
@@ -48,6 +49,14 @@ impl RTC {
             let file = std::fs::File::open(new_filename).unwrap();
 
         }
+    }
+
+    pub fn write_command(&self, command: u8) {
+        todo!()
+    }
+
+    pub fn set_register(&self, p0: u16, p1: u8) {
+        todo!()
     }
 
     fn load_state(&self, file: File, state_version: c_int, time_zero: &mut time::SystemTime) {

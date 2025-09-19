@@ -9,6 +9,7 @@ mod bus;
 extern crate std;
 
 use crate::motherboard::Motherboard;
+use crate::cartridge::cartridge::Cartridge;
 
 fn main() {
     let motherboard = Motherboard::new();
