@@ -5,12 +5,11 @@
     pub struct Cartridge {
         pub rom: ROM,
         pub ram: RAM,
-        pub mbc: MBC,
         pub cartridge_table: HashMap<u8, (bool, bool, bool)>,
         pub external_ram_table: HashMap<u8, u8>,
     }
     impl Cartridge {
-        pub fn new(rom: ROM, ram: RAM, mbc: MBC) -> Cartridge {
+        pub fn new(rom: ROM, ram: RAM) -> Cartridge {
             let mut cartridge_table = HashMap::new();
             cartridge_table.insert(0x00, (false, false, false));
             cartridge_table.insert(0x01, (false, false, false));
@@ -40,7 +39,7 @@
             external_ram_table.insert(0x04, 16);
             external_ram_table.insert(0x05, 8);
 
-            Cartridge { rom, ram, mbc, cartridge_table, external_ram_table }
+            Cartridge { rom, ram, cartridge_table, external_ram_table }
         }
 
         fn load_cartridge(&self, filename: &str) {
@@ -51,9 +50,13 @@
 
             let external_ram_count = *self.external_ram_table.get(&rom_banks[0x0149]).unwrap_or(&0);
             let cart_type = rom_banks[0x0147];
-            let cart_info = self.cartridge_table.get(&cart_type).unwrap_or(&(false, false, false));
-            if cart_info == null() {
+            let cart_info = self.cartridge_table.get(&cart_type);
+            let mut cart_info_unwrapped = &(false, false, false);
+            if cart_info == None {
                 panic!("Invalid cartridge type");
+            }
+            else {
+                cart_info_unwrapped = cart_info.unwrap()
             }
             // car_line =
         }

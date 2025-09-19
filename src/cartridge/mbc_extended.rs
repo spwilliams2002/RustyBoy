@@ -81,3 +81,85 @@ impl MBC1 {
         }
     }
 }
+
+pub struct MBC2 {
+    pub base_mbc: BaseMBC,
+}
+
+impl MBC2 {
+    pub fn new(&mut self, filename: String, rom_banks: Vec<u8>,
+               external_ram_count: c_int, cart_type: u8, sram: u8,
+               battery_enabled: bool, rtc_enabled: bool) -> Self {
+        Self {
+            base_mbc: BaseMBC::new(filename, rom_banks, external_ram_count, cart_type,
+                                   sram, battery_enabled, rtc_enabled),
+        }
+    }
+
+    pub fn set_item(&mut self, address: u16, mut value: u8) {
+        if (0x0000 <= address) && (address < 0x4000) {
+            value &= 0b00001111;
+            if (address & 0x100) == 0 {
+                self.base_mbc.ram_bank_enabled = value == 0b00001010;
+            }
+            else {
+                if value == 0 { value = 1; }
+            }
+        }
+        else if (0xA000 <= address) && (address < 0xC000) {
+            if self.base_mbc.ram_bank_enabled {
+                let range_start = 0;
+                let range_end = (address % 512) as usize;
+                for v in &mut self.base_mbc.ram_banks[range_start..range_end] {
+                    *v = value | 0b11110000;
+                }
+            }
+        }
+        else {
+            panic!["Invalid writing address: {}, value: {}", address, value];
+        }
+    }
+
+    pub fn get_item(&mut self, address: u16) -> u8 {
+        if (0x0000 <= address) && (address < 0x4000) {
+            return self.base_mbc.ram_banks[0..address as usize].iter().sum::<u8>();
+        }
+        else if (0x4000 <= address) && (address < 0x8000) {
+            return self.base_mbc.ram_banks[self.base_mbc.ram_bank_selected as usize..(address - 0x4000) as usize].iter().sum::<u8>();
+        }
+        else if (0xA000 <= address) && (address < 0xC000) {
+            if !self.base_mbc.ram_bank_initialized {
+                panic!["RAM banks not initialized: {}", address];
+            }
+            if !self.base_mbc.ram_bank_enabled {
+                return 0xFF;
+            }
+            else {
+                return self.base_mbc.ram_banks[0..(address % 512) as usize].iter().sum::<u8>();
+            }
+        }
+        else {
+            panic!["Invalid reading address: {}", address];
+        }
+    }
+}
+
+pub struct MBC3 {
+    pub base_mbc: BaseMBC,
+}
+
+impl MBC3 {
+    pub fn new(&mut self, filename: String, rom_banks: Vec<u8>,
+               external_ram_count: c_int, cart_type: u8, sram: u8,
+               battery_enabled: bool, rtc_enabled: bool) -> Self {
+        Self {
+            base_mbc: BaseMBC::new(filename, rom_banks, external_ram_count, cart_type,
+                                   sram, battery_enabled, rtc_enabled),
+        }
+    }
+    pub fn set_item(&mut self, address: u16, mut value: u8) {
+        if (0x0000 <= address) && (address < 0x2000) {
+            
+        }
+    }
+}
